@@ -58,7 +58,9 @@ class RebrickableLoader extends BaseLoader
             $this->loadThemeTable($this->csvFile['themes']);
             $this->loadThemeTable($this->csvFile['themes']); //load twice since data contains conflicting Foregeins_Keys / Dependencies
             $this->loadSetTable($this->csvFile['sets']);
+            $connection->prepare('SET foreign_key_checks = 0;')->execute();
             $this->loadInventoryTable($this->csvFile['inventories']);
+            $connection->prepare('SET foreign_key_checks = 1;')->execute();
             $this->loadInventorySetTable($this->csvFile['inventory_sets']);
 
             $connection->prepare('SET foreign_key_checks = 0;')->execute();
