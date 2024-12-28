@@ -1,5 +1,7 @@
-FROM php:7.1.33-zts-stretch
+FROM php:7.1.33-zts-buster
 # FROM php:7.1.33-fpm-stretch
+
+ENV PHP_MEMORY_LIMIT=2G
 
 RUN apt update && apt install -y \
     admesh \
@@ -22,19 +24,19 @@ RUN chmod +x /usr/local/bin/install-php-extensions && sync
 RUN install-php-extensions zip pdo_mysql
 
 # install elasticsearch
-RUN wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | apt-key add -
-RUN echo "deb https://artifacts.elastic.co/packages/7.x/apt stable main" | tee -a /etc/apt/sources.list.d/elastic-7.x.list
-RUN apt update && apt install elasticsearch
+# RUN wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | apt-key add -
+# RUN echo "deb https://artifacts.elastic.co/packages/7.x/apt stable main" | tee -a /etc/apt/sources.list.d/elastic-7.x.list
+# RUN apt update && apt install elasticsearch
 
-RUN /bin/systemctl enable elasticsearch.service
+# RUN /bin/systemctl enable elasticsearch.service
 
 #install node 8 because newever version go kaboom
 RUN curl -sL https://deb.nodesource.com/setup_8.x | bash -
-RUN apt install -y nodejs
+RUN apt install -y nodejs npm
 
 #install ldview
-RUN wget https://github.com/tcobbs/ldview/releases/download/v4.3/ldview-osmesa_4.3-stretch_amd64.deb
-RUN apt install -y /ldview-osmesa_4.3-stretch_amd64.deb
+RUN wget https://github.com/tcobbs/ldview/releases/download/v4.4/ldview-osmesa-4.4-debian-buster.amd64.deb
+RUN apt install -y /ldview-osmesa-4.4-debian-buster.amd64.deb
 
 #install stl2pov
 RUN git clone https://github.com/rsmith-nl/stltools.git
@@ -47,7 +49,8 @@ RUN wget https://getcomposer.org/installer
 RUN php installer
 RUN mv composer.phar /usr/local/bin/composer
 
-RUN git clone https://github.com/hubnedav/PrintABrick.git
+# RUN git clone https://github.com/hubnedav/PrintABrick.git
+ADD . /PrintABrick
 WORKDIR /PrintABrick
 RUN composer install
 
@@ -58,7 +61,8 @@ RUN npm install bower -g
 RUN bower install --allow-root
 RUN node_modules/gulp/bin/gulp.js
 
-RUN apt install -y mysql-server
+# RUN apt install -y mysql-server
+# RUN apt install -y mariadb-client
 #configure mysql
 #start and let root access to server
 
