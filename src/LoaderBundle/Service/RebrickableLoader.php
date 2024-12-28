@@ -90,7 +90,24 @@ class RebrickableLoader extends BaseLoader
         ]);
 
         foreach ($array as $item) {
-            $this->csvFile[$item] = $this->downloadFile($this->rebrickable_url.$item.'.csv');
+            $gzfile = $this->downloadFile($this->rebrickable_url.$item.'.csv.gz');
+            $out_file_name = $gzfile.'.csv';
+            // open gz-file
+            $file = gzopen($gzfile, 'rb');
+            // open new file
+            $out_file = fopen($out_file_name, 'wb'); 
+            // Keep repeating until the end of the input file
+            while (!gzeof($file)) {
+                // Read buffer-size bytes
+                // Both fwrite and gzread and binary-safe
+                fwrite($out_file, gzread($file, 4096));
+            }
+
+            // Files are done, close files
+            fclose($out_file);
+            gzclose($file);
+
+            $this->csvFile[$item] = $out_file_name;
         }
 
         $this->writeOutput(['<info>All CSV files loaded.</info>']);
