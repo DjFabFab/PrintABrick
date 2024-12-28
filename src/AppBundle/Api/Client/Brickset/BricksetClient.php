@@ -15,7 +15,7 @@ use AppBundle\Api\Exception\CallFailedException;
 
 class BricksetClient
 {
-    const WSDL = 'https://brickset.com/api/v2.asmx?WSDL';
+    const WSDL = 'https://brickset.com/api/v3.asmx?WSDL';
 
     private $apiKey = '';
 
@@ -52,6 +52,8 @@ class BricksetClient
 
 //        $this->options['cache_wsdl'] = WSDL_CACHE_NONE;
         $this->options['exceptions'] = true;
+        $this->options['trace'] = true;
+        $this->options['soap_version'] = SOAP_1_2;
 
         foreach (self::$classmap as $key => $value) {
             if (!isset($this->options['classmap'][$key])) {
