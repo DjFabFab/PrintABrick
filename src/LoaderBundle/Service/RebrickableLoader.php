@@ -56,6 +56,7 @@ class RebrickableLoader extends BaseLoader
             $this->loadCategoryTable($this->csvFile['part_categories']);
             $this->loadPartTable($this->csvFile['parts']);
             $this->loadThemeTable($this->csvFile['themes']);
+            $this->loadThemeTable($this->csvFile['themes']); //load twice since data contains conflicting Foregeins_Keys / Dependencies
             $this->loadSetTable($this->csvFile['sets']);
             $this->loadInventoryTable($this->csvFile['inventories']);
             $this->loadInventorySetTable($this->csvFile['inventory_sets']);
@@ -143,12 +144,12 @@ class RebrickableLoader extends BaseLoader
     private function loadCsvFile($file, $table, $columns)
     {
         $query = sprintf("LOAD DATA LOCAL INFILE '%s' 
-            REPLACE INTO TABLE %s
+            INTO TABLE %s
             CHARACTER SET UTF8
-            FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'
-            LINES TERMINATED BY '\\n'
+            FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\\\"'
+            LINES TERMINATED BY '\\r\\n'
             IGNORE 1 LINES %s", addslashes($file), $table, $columns);
-
+        // $this->writeOutput([$query]);
         return $this->em->getConnection()->prepare($query)->execute();
     }
 
