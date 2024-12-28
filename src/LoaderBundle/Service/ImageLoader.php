@@ -76,19 +76,25 @@ class ImageLoader extends BaseLoader
         $this->writeOutput([
             'Rendering missing images of models',
         ]);
-        $this->initProgressBar(count($missing));
-        foreach ($missing as $model) {
-            $this->progressBar->setMessage($model->getId());
+        if(count($missing) > 0) {
+            $this->initProgressBar(count($missing));
+            foreach ($missing as $model) {
+                $this->progressBar->setMessage($model->getId());
 
-            try {
-                $this->loadModelImage($this->mediaFilesystem->getAdapter()->getPathPrefix().$model->getPath());
-            } catch (\Exception $e) {
-                $this->logger->error('Error rendering model '.$model->getId().' image', [$e->getMessage()]);
+                try {
+                    $this->loadModelImage($this->mediaFilesystem->getAdapter()->getPathPrefix().$model->getPath());
+                } catch (\Exception $e) {
+                    $this->logger->error('Error rendering model '.$model->getId().' image', [$e->getMessage()]);
+                }
+                $this->progressBar->advance();
             }
-            $this->progressBar->advance();
-        }
 
-        $this->progressBar->finish();
+            $this->progressBar->finish();
+        }else{
+            $this->writeOutput([
+                'No Rendering required! Count: 0',
+            ]);
+        }
     }
 
     /**
