@@ -5,6 +5,7 @@ namespace LoaderBundle\Service;
 use AppBundle\Transformer\FormatTransformer;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\EntityManagerInterface;
+use LoaderBundle\Exception\UrlNotFoundException;
 use LoaderBundle\Exception\WriteErrorException;
 use Monolog\Logger;
 use Psr\Log\LoggerInterface;
