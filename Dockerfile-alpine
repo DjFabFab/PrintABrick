@@ -24,7 +24,7 @@ RUN apk add --update --no-cache --allow-untrusted admesh --repository=http://dl-
 RUN apk add --update --no-cache git coreutils build-base autoconf automake bash \
         boost-dev zlib-dev libpng-dev jpeg-dev tiff-dev openexr-dev\
         --repository=http://dl-cdn.alpinelinux.org/alpine/v3.16/main/
-RUN git clone https://github.com/POV-Ray/povray.git && \
+RUN git clone --depth=1 https://github.com/POV-Ray/povray.git && \
     cd povray && git checkout -b latest-stable
 RUN cd povray/unix && ./prebuild.sh && \
     cd .. && ./configure COMPILED_BY="undefined" && make && make install
@@ -40,11 +40,29 @@ RUN rm /usr/local/bin/install-php-extensions
 RUN apk add  --no-cache --repository http://dl-cdn.alpinelinux.org/alpine/v3.7/main/ nodejs npm
 
 #install ldview
+# ADD https://github.com/tcobbs/ldview/releases/download/v4.4/ldview-osmesa-4.4-1-x86_64.pkg.tar.zst /ldview-osmesa-4.4-1-x86_64.pkg.tar.zst
+# RUN tar --zstd -xvf /ldview-osmesa-4.4-1-x86_64.pkg.tar.zst
+#glibc compat
+ARG GLIBC_REPO=https://github.com/sgerrand/alpine-pkg-glibc
+ARG GLIBC_VERSION=2.35-r1
+RUN apk --update add mesa-osmesa mesa-gl glu tinyxml libstdc++ curl ca-certificates && \
+    for pkg in glibc-${GLIBC_VERSION} glibc-bin-${GLIBC_VERSION}; \
+        do curl -sSL ${GLIBC_REPO}/releases/download/${GLIBC_VERSION}/${pkg}.apk -o /tmp/${pkg}.apk; done && \
+    apk add --allow-untrusted /tmp/*.apk && \
+    rm -v /tmp/*.apk && \
+    /usr/glibc-compat/sbin/ldconfig /lib /usr/glibc-compat/lib
+#gl2ps compile
+RUN apk add --update --no-cache freeglut-dev gcc g++ cmake
+RUN git clone --depth=1 https://gitlab.onelab.info/gl2ps/gl2ps && \
+    cd gl2ps && git checkout -b gl2ps_1_4_2
+RUN mkdir -p gl2ps/build && cd gl2ps/build && \
+    cmake -DGL2PS_EXTRA_VERSION=${EXTRA_VERSION:0:13} .. && \
+    make && make install
 ADD https://github.com/tcobbs/ldview/releases/download/v4.4.1/ldview-4.4.1-r1.apk /ldview-4.4.1-r1.apk
 RUN apk add --update --no-cache --allow-untrusted ./ldview-4.4.1-r1.apk && rm ./ldview-4.4.1-r1.apk
 
 #install stl2pov
-RUN git clone https://github.com/rsmith-nl/stltools.git
+RUN git clone --depth=1 https://github.com/rsmith-nl/stltools.git
 WORKDIR stltools
 RUN python3 setup.py install
 WORKDIR /
@@ -62,7 +80,7 @@ ADD nginx-site.conf /etc/nginx/sites-available/default
 # Configure fpm
 ADD fpm.conf /etc/php/7.1/fpm/pool.d/printabrick.conf
 
-# RUN git clone https://github.com/hubnedav/PrintABrick.git
+# RUN git clone --depth=1 https://github.com/hubnedav/PrintABrick.git
 ADD . /PrintABrick
 WORKDIR /PrintABrick
 # RUN composer update
