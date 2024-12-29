@@ -406,7 +406,7 @@ class ModelLoader extends BaseLoader
             return false;
         }
         // Do not include models without permission to redistribute
-        elseif ($modelArray['license'] != 'Licensed under CC BY 4.0') {
+        elseif ($modelArray['license'] != 'Licensed under CC BY 4.0' && $modelArray['license'] != 'Licensed under CC BY 2.0 and CC BY 4.0' ) {
             $this->logger->info('Model skipped.', ['number' => $modelArray['id'], 'license' => $modelArray['license']]);
 
             return false;
