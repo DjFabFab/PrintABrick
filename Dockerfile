@@ -4,6 +4,7 @@ FROM php:7.1.33-fpm-buster
 # FROM php:7.1.33-fpm-stretch
 
 ENV PHP_MEMORY_LIMIT=2G
+WORKDIR /
 
 RUN apt update && apt-get upgrade -y && apt install -y \
     admesh \
@@ -72,7 +73,6 @@ RUN apt update && apt install -y \
     apt-get clean
 # ADD nginx.conf /etc/nginx/nginx.conf
 ADD nginx-site.conf /etc/nginx/sites-available/default
-    
 
 # Configure fpm
 ADD fpm.conf /etc/php/7.1/fpm/pool.d/printabrick.conf
