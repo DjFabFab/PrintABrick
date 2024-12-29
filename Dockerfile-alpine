@@ -1,0 +1,112 @@
+# FROM alpine:edge as installer
+
+# RUN apk update && apk add admesh
+
+# node > 8 for bullseye
+FROM php:7.1.33-fpm-alpine
+# FROM php:7.1.33-fpm-stretch
+
+ENV PHP_MEMORY_LIMIT=2G
+
+RUN apk upgrade --update --no-cache
+
+RUN apk add --update --no-cache musl git py3-setuptools vim wget zstd curl
+WORKDIR /
+
+
+#admesh
+RUN apk add --update --no-cache --allow-untrusted admesh --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing/
+# COPY --from=installer /usr/bin/admesh /usr/bin/admesh
+# COPY --from=installer /usr/lib/libadmesh.so.1 /usr/lib/libadmesh.so.1
+# COPY --from=installer /usr/lib/libadmesh.so.1.0.0 /usr/lib/libadmesh.so.1.0.0
+
+#povray
+RUN apk add --update --no-cache git coreutils build-base autoconf automake bash \
+        boost-dev zlib-dev libpng-dev jpeg-dev tiff-dev openexr-dev\
+        --repository=http://dl-cdn.alpinelinux.org/alpine/v3.16/main/
+RUN git clone https://github.com/POV-Ray/povray.git && \
+    cd povray && git checkout -b latest-stable
+RUN cd povray/unix && ./prebuild.sh && \
+    cd .. && ./configure COMPILED_BY="undefined" && make && make install
+RUN rm -r /povray
+
+#php extensions
+ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
+RUN chmod +x /usr/local/bin/install-php-extensions && sync
+RUN install-php-extensions zip pdo_mysql gd soap
+RUN rm /usr/local/bin/install-php-extensions
+
+#install node 8 because newever version go kaboom
+RUN apk add  --no-cache --repository http://dl-cdn.alpinelinux.org/alpine/v3.7/main/ nodejs npm
+
+#install ldview
+ADD https://github.com/tcobbs/ldview/releases/download/v4.4.1/ldview-4.4.1-r1.apk /ldview-4.4.1-r1.apk
+RUN apk add --update --no-cache --allow-untrusted ./ldview-4.4.1-r1.apk && rm ./ldview-4.4.1-r1.apk
+
+#install stl2pov
+RUN git clone https://github.com/rsmith-nl/stltools.git
+WORKDIR stltools
+RUN python3 setup.py install
+WORKDIR /
+
+#install composer
+RUN wget https://getcomposer.org/installer
+RUN php installer
+RUN mv composer.phar /usr/local/bin/composer
+
+# Install & configure nginx
+RUN apk add nginx
+ADD nginx.conf /etc/nginx/sites-available/default
+
+# Configure fpm
+ADD fpm.conf /etc/php/7.1/fpm/pool.d/printabrick.conf
+
+# RUN git clone https://github.com/hubnedav/PrintABrick.git
+ADD . /PrintABrick
+WORKDIR /PrintABrick
+# RUN composer update
+RUN composer install 
+#--ignore-platform-reqs
+
+# setup front ned
+RUN npm install
+RUN npm install bower -g
+
+RUN bower install --allow-root
+RUN node_modules/gulp/bin/gulp.js
+
+# Permissions
+#
+
+RUN chown -R www-data:www-data .
+
+RUN mkdir -p web/media/cache
+RUN chown -R root:www-data web
+RUN chmod -R 775 web/media/cache
+# RUN chmod -R +xx web
+
+RUN mkdir -p var/cache
+RUN chown -R root:www-data var
+RUN chmod -R 775 var
+# RUN chmod -R 775 var/logs
+# RUN chmod -R 775 var/sessions
+# RUN chmod -R 775 var/cache
+
+RUN chown -R root:www-data vendor
+RUN chmod -R +xx vendor
+
+# RUN apt install -y mysql-server
+# RUN apt install -y mariadb-client
+#configure mysql
+#start and let root access to server
+
+#RUN php bin/console doctrine:database:create
+#RUN php bin/console doctrine:schema:create
+
+#RUN php bin/console doctrine:fixtures:load
+
+#RUN php bin/console app:init
+
+# Cleanup
+RUN apk del build-base autoconf automake git vim wget zstd&& \
+    rm -rf /var/cache/apk/*
