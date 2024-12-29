@@ -71,7 +71,9 @@ RUN mv composer.phar /usr/local/bin/composer
 RUN apt update && apt install -y \
     nginx &&\
     apt-get clean
-ADD nginx.conf /etc/nginx/sites-available/default
+# ADD nginx.conf /etc/nginx/nginx.conf
+ADD nginx-site.conf /etc/nginx/sites-available/default
+    
 
 # Configure fpm
 ADD fpm.conf /etc/php/7.1/fpm/pool.d/printabrick.conf

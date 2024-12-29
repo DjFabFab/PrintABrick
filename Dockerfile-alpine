@@ -56,7 +56,8 @@ RUN mv composer.phar /usr/local/bin/composer
 
 # Install & configure nginx
 RUN apk add nginx
-ADD nginx.conf /etc/nginx/sites-available/default
+ADD nginx.conf /etc/nginx/nginx.conf
+ADD nginx-site.conf /etc/nginx/sites-available/default
 
 # Configure fpm
 ADD fpm.conf /etc/php/7.1/fpm/pool.d/printabrick.conf
@@ -78,21 +79,21 @@ RUN node_modules/gulp/bin/gulp.js
 # Permissions
 #
 
-RUN chown -R www-data:www-data .
+RUN chown -R nginx:nginx .
 
 RUN mkdir -p web/media/cache
-RUN chown -R root:www-data web
+RUN chown -R root:nginx web
 RUN chmod -R 775 web/media/cache
 # RUN chmod -R +xx web
 
 RUN mkdir -p var/cache
-RUN chown -R root:www-data var
+RUN chown -R root:nginx var
 RUN chmod -R 775 var
 # RUN chmod -R 775 var/logs
 # RUN chmod -R 775 var/sessions
 # RUN chmod -R 775 var/cache
 
-RUN chown -R root:www-data vendor
+RUN chown -R root:nginx vendor
 RUN chmod -R +xx vendor
 
 # RUN apt install -y mysql-server
