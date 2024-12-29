@@ -34,15 +34,26 @@ RUN wget https://github.com/tcobbs/ldview/releases/download/v4.4/ldview-osmesa-4
 RUN apt install -y /ldview-osmesa-4.4-debian-buster.amd64.deb --allow-unauthenticated && \
     rm /ldview-osmesa-4.4-debian-buster.amd64.deb && \
     apt-get clean
-# RUN sed -i 's/bullseye main/buster main/g' /etc/apt/sources.list && apt update
-# RUN wget https://github.com/tcobbs/ldview/releases/download/v4.4/ldview-osmesa-4.4-1-x86_64.pkg.tar.zst -O /ldview-osmesa-4.4-1-x86_64.pkg.tar.zst
-# RUN tar --zstd -xvf /ldview-osmesa-4.4-1-x86_64.pkg.tar.zst
-# RUN wget https://archive.debian.org/debian/pool/main/libj/libjpeg8/libjpeg8_8b-1_amd64.deb
-# RUN apt-get install ./libjpeg8_8b-1_amd64.deb && rm ./libjpeg8_8b-1_amd64.deb
-# RUN apt install -y libgl2ps1.4 libpng16-16 libosmesa6 libglu1-mesa libtinyxml-dev && apt-get clean && \
-#     ln -s /usr/lib/x86_64-linux-gnu/libgl2ps.so.1.4 /usr/lib/x86_64-linux-gnu/libgl2ps.so.1 && \
-#     ln -s /usr/lib/x86_64-linux-gnu/libtinyxml.so.2.6.2 /usr/lib/x86_64-linux-gnu/libtinyxml.so.0
-
+# rebuild mesa for debian:buster
+# https://github.com/tcobbs/ldview/issues/40
+RUN wget https://archive.mesa3d.org/mesa-18.3.6.tar.xz && \
+tar Jxf mesa-18.3.6.tar.xz
+RUN apt install -y\
+        build-essential meson python3-mako \
+        libexpat1-dev libdrm-dev llvm-dev libelf-dev \
+        bison flex \
+        libwayland-dev wayland-protocols libwayland-egl-backend-dev \
+        libx11-dev libxext-dev libxdamage-dev libxcb-glx0-dev libx11-xcb-dev\
+        libxcb-dri2-0-dev libxcb-dri3-dev libxcb-present-dev libxshmfence-dev libxxf86vm-dev libxrandr-dev \
+        gettext &&\
+    apt-get clean
+RUN cd mesa-18.3.6 && \
+    mkdir builddir && \
+    meson builddir && \
+    ninja -C builddir && \
+    ninja -C builddir/ install && \
+    export LD_LIBRARY_PATH=/usr/local/lib/x86_64-linux-gnu
+RUN rm mesa-18.3.6.tar.xz && rm mesa-18.3.6 -r
 
 # install stl2pov
 RUN git clone https://github.com/rsmith-nl/stltools.git
@@ -116,5 +127,12 @@ RUN apt remove --autoremove -y \
     vim \
     wget \
     zstd \
+    build-essential meson python3-mako \
+    libexpat1-dev libdrm-dev llvm-dev libelf-dev \
+    bison flex \
+    libwayland-dev wayland-protocols libwayland-egl-backend-dev \
+    libx11-dev libxext-dev libxdamage-dev libxcb-glx0-dev libx11-xcb-dev \
+    libxcb-dri2-0-dev libxcb-dri3-dev libxcb-present-dev libxshmfence-dev libxxf86vm-dev libxrandr-dev \
+    gettext \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
