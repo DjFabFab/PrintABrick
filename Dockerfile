@@ -19,29 +19,17 @@ RUN apt update && apt-get upgrade -y && apt install -y \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-# RUN COPY docker-php-ext-get /usr/local/bin/
-
+# php extensions
 ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
-
 RUN chmod +x /usr/local/bin/install-php-extensions && sync
-
 RUN install-php-extensions zip pdo_mysql gd soap
 
-# install elasticsearch
-# RUN wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | apt-key add -
-# RUN echo "deb https://artifacts.elastic.co/packages/7.x/apt stable main" | tee -a /etc/apt/sources.list.d/elastic-7.x.list
-# RUN apt update && apt install elasticsearch
-
-# RUN /bin/systemctl enable elasticsearch.service
-
-#install node 8 because newever version go kaboom
+# install node 8 because newever version go kaboom
 RUN curl -sL https://deb.nodesource.com/setup_8.x | bash -
 RUN apt install -y nodejs npm &&\
     apt-get clean
 
 #install ldview
-# RUN sed -i 's/buster main/bullseye main/g' /etc/apt/sources.list && apt update --allow-unauthenticated
-# RUN apt-get upgrade --allow-unauthenticated -y
 RUN wget https://github.com/tcobbs/ldview/releases/download/v4.4/ldview-osmesa-4.4-debian-buster.amd64.deb -O /ldview-osmesa-4.4-debian-buster.amd64.deb
 RUN apt install -y /ldview-osmesa-4.4-debian-buster.amd64.deb --allow-unauthenticated && \
     rm /ldview-osmesa-4.4-debian-buster.amd64.deb && \
@@ -56,13 +44,13 @@ RUN apt install -y /ldview-osmesa-4.4-debian-buster.amd64.deb --allow-unauthenti
 #     ln -s /usr/lib/x86_64-linux-gnu/libtinyxml.so.2.6.2 /usr/lib/x86_64-linux-gnu/libtinyxml.so.0
 
 
-#install stl2pov
+# install stl2pov
 RUN git clone https://github.com/rsmith-nl/stltools.git
 WORKDIR stltools
 RUN python3 setup.py install
 WORKDIR /
 
-#install composer
+# install composer
 RUN wget https://getcomposer.org/installer
 RUN php installer
 RUN mv composer.phar /usr/local/bin/composer
@@ -78,6 +66,7 @@ ADD nginx-site.conf /etc/nginx/sites-available/default
 # Configure fpm
 ADD fpm.conf /etc/php/7.1/fpm/pool.d/printabrick.conf
 
+# Print a Brick
 # RUN git clone https://github.com/hubnedav/PrintABrick.git
 ADD . /PrintABrick
 WORKDIR /PrintABrick
@@ -91,8 +80,6 @@ RUN bower install --allow-root
 RUN node_modules/gulp/bin/gulp.js
 
 # Permissions
-#
-
 RUN chown -R www-data:www-data .
 
 RUN mkdir -p web/media/cache
