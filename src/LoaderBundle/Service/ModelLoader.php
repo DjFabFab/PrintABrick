@@ -184,6 +184,16 @@ class ModelLoader extends BaseLoader
         foreach ($files as $file) {
             $this->progressBar->setMessage($file['basename']);
 
+            # Check for closed em/DB-Connection and reopen
+            if (!$this->em->isOpen()) {
+                $this->em = $this->em->create(
+                    $this->em->getConnection(),
+                    $this->em->getConfiguration()
+                );
+                $connection = $this->em->getConnection();
+                $this->logger->error(["em Connection was closed. Database Error? Reopening."]);
+            }
+
             if ($file['type'] == 'file' && $file['extension'] == 'dat') {
                 $connection->beginTransaction();
                 try {
