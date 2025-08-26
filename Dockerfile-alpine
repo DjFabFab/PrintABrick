@@ -1,36 +1,41 @@
-# FROM alpine:edge as installer
-
-# RUN apk update && apk add admesh
-
 # node > 8 for bullseye
-FROM php:7.1.33-fpm-alpine
+FROM php:7.1.33-fpm-alpine3.10
 # FROM php:7.1.33-fpm-stretch
 
+ARG POVRAY_VERSION=v3.7.0.10
+ARG LDVIEW_VERSION=v4.5
+ARG GL2PS_VERSION=1_4_2
+ARG STLTOOLS_VERSION=2022.12.20
+ARG AD_MESH_VERSION=0.98.5-r0
+
 ENV PHP_MEMORY_LIMIT=2G
-
-RUN apk upgrade --update --no-cache
-
-RUN apk add --update --no-cache musl git py3-setuptools vim wget zstd curl
 WORKDIR /
 
 
+RUN apk upgrade --update --no-cache
+
+RUN apk add --update --no-cache \
+    musl git py3-setuptools vim wget zstd curl
+
 #admesh
-RUN apk add --update --no-cache --allow-untrusted admesh --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing/
+RUN apk add --update --no-cache --allow-untrusted admesh=${AD_MESH_VERSION} \
+    --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing/
 # COPY --from=installer /usr/bin/admesh /usr/bin/admesh
 # COPY --from=installer /usr/lib/libadmesh.so.1 /usr/lib/libadmesh.so.1
 # COPY --from=installer /usr/lib/libadmesh.so.1.0.0 /usr/lib/libadmesh.so.1.0.0
 
-#povray
-RUN apk add --update --no-cache git coreutils build-base autoconf automake bash \
-        boost-dev zlib-dev libpng-dev jpeg-dev tiff-dev openexr-dev\
-        --repository=http://dl-cdn.alpinelinux.org/alpine/v3.16/main/
-RUN git clone --depth=1 https://github.com/POV-Ray/povray.git && \
-    cd povray && git checkout -b latest-stable
+# povray
+RUN apk add --update --no-cache \
+    git coreutils build-base autoconf automake bash \
+    boost-dev zlib-dev libpng-dev jpeg-dev tiff-dev openexr-dev\
+    --repository=http://dl-cdn.alpinelinux.org/alpine/v3.16/main/
+
+RUN git clone --depth=1 https://github.com/POV-Ray/povray.git -b ${POVRAY_VERSION}
 RUN cd povray/unix && ./prebuild.sh && \
     cd .. && ./configure COMPILED_BY="undefined" && make && make install
 RUN rm -r /povray
 
-#php extensions
+# php extensions
 ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
 RUN chmod +x /usr/local/bin/install-php-extensions && sync
 RUN install-php-extensions zip pdo_mysql gd soap
@@ -48,46 +53,52 @@ ARG GLIBC_VERSION=2.35-r1
 RUN apk --update add mesa-osmesa mesa-gl glu tinyxml libstdc++ curl ca-certificates && \
     for pkg in glibc-${GLIBC_VERSION} glibc-bin-${GLIBC_VERSION}; \
         do curl -sSL ${GLIBC_REPO}/releases/download/${GLIBC_VERSION}/${pkg}.apk -o /tmp/${pkg}.apk; done && \
-    apk add --allow-untrusted /tmp/*.apk && \
+    apk add --no-cache --allow-untrusted /tmp/*.apk && \
     rm -v /tmp/*.apk && \
     /usr/glibc-compat/sbin/ldconfig /lib /usr/glibc-compat/lib
 #gl2ps compile
 RUN apk add --update --no-cache freeglut-dev gcc g++ cmake
-RUN git clone --depth=1 https://gitlab.onelab.info/gl2ps/gl2ps && \
-    cd gl2ps && git checkout -b gl2ps_1_4_2
+RUN git clone --depth=1 https://gitlab.onelab.info/gl2ps/gl2ps -b gl2ps_${GL2PS_VERSION}
 RUN mkdir -p gl2ps/build && cd gl2ps/build && \
     cmake -DGL2PS_EXTRA_VERSION=${EXTRA_VERSION:0:13} .. && \
     make && make install
 ADD https://github.com/tcobbs/ldview/releases/download/v4.4.1/ldview-4.4.1-r1.apk /ldview-4.4.1-r1.apk
 RUN apk add --update --no-cache --allow-untrusted ./ldview-4.4.1-r1.apk && rm ./ldview-4.4.1-r1.apk
 
-#install stl2pov
-RUN git clone --depth=1 https://github.com/rsmith-nl/stltools.git
+#ldview compile
+RUN apk add --update --no-cache minizip-dev mesa-osmesa
+RUN git clone --depth=1 https://github.com/tcobbs/ldview -b ${LDVIEW_VERSION}
+RUN cd ldview/OSMesa && make && make install
+RUN rm -r /ldview
+
+# install stl2pov
+RUN git clone --depth=1 https://github.com/rsmith-nl/stltools.git -b ${STLTOOLS_VERSION}
 WORKDIR stltools
 RUN python3 setup.py install
 WORKDIR /
 
-#install composer
+# install composer
 RUN wget https://getcomposer.org/installer
 RUN php installer
 RUN mv composer.phar /usr/local/bin/composer
 
 # Install & configure nginx
-RUN apk add nginx
+RUN apk add --no-cache nginx
 ADD nginx.conf /etc/nginx/nginx.conf
 ADD nginx-site.conf /etc/nginx/sites-available/default
 
 # Configure fpm
 ADD fpm.conf /etc/php/7.1/fpm/pool.d/printabrick.conf
 
+# Print a Brick
 # RUN git clone --depth=1 https://github.com/hubnedav/PrintABrick.git
 ADD . /PrintABrick
 WORKDIR /PrintABrick
 # RUN composer update
-RUN composer install 
+RUN composer install
 #--ignore-platform-reqs
 
-# setup front ned
+# setup frontend
 RUN npm install
 RUN npm install bower -g
 
@@ -95,8 +106,6 @@ RUN bower install --allow-root
 RUN node_modules/gulp/bin/gulp.js
 
 # Permissions
-#
-
 RUN chown -R nginx:nginx .
 
 RUN mkdir -p web/media/cache
@@ -127,5 +136,5 @@ RUN chmod -R +xx vendor
 #RUN php bin/console app:init
 
 # Cleanup
-RUN apk del build-base autoconf automake git vim wget zstd&& \
+RUN apk del --purge build-base autoconf automake git vim wget zstd && \
     rm -rf /var/cache/apk/*
