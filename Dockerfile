@@ -1,5 +1,6 @@
 # ldview is broken in debian:buster!, requires bullseye
 # node > 8 for bullseye
+# FROM php:7.3-fpm-bullseye #unsupported on node 8
 FROM php:7.1.33-fpm-buster
 # FROM php:7.1.33-fpm-stretch
 
@@ -24,6 +25,7 @@ RUN apt update && apt-get upgrade -y && apt install -y \
 ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
 RUN chmod +x /usr/local/bin/install-php-extensions && sync
 RUN install-php-extensions zip pdo_mysql gd soap
+RUN rm /usr/local/bin/install-php-extensions
 
 # install node 8 because newever version go kaboom
 RUN curl -sL https://deb.nodesource.com/setup_8.x | bash -
@@ -57,9 +59,11 @@ RUN cd mesa-18.3.6 && \
 RUN rm mesa-18.3.6.tar.xz && rm mesa-18.3.6 -r
 
 # install stl2pov
-RUN git clone https://github.com/rsmith-nl/stltools.git
+RUN git clone --depth=1 https://github.com/rsmith-nl/stltools.git
 WORKDIR stltools
 RUN python3 setup.py install
+COPY stl2pov /usr/bin/stl2pov
+RUN chmod +x /usr/bin/stl2pov
 WORKDIR /
 
 # install composer
@@ -78,7 +82,7 @@ ADD nginx-site.conf /etc/nginx/sites-available/default
 ADD fpm.conf /etc/php/7.1/fpm/pool.d/printabrick.conf
 
 # Print a Brick
-# RUN git clone https://github.com/hubnedav/PrintABrick.git
+# RUN git clone --depth=1 https://github.com/hubnedav/PrintABrick.git
 ADD . /PrintABrick
 WORKDIR /PrintABrick
 RUN composer install
