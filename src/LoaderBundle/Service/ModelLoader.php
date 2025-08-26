@@ -227,8 +227,8 @@ class ModelLoader extends BaseLoader
      */
     public function loadModel($file, $iteration=0)
     {
-        if($iteration >= 20) {
-                 $this->logger->error("Too many submodels. Skipping", [$file]);
+        if($iteration >= 1000) {
+                 $this->logger->warn("Too many submodels. Skipping", [$file]);
                  return false;
         }
         /** @var ModelRepository $modelRepository */
