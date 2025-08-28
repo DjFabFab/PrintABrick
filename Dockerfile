@@ -4,10 +4,22 @@
 FROM php:7.1.33-fpm-buster
 # FROM php:7.1.33-fpm-stretch
 
+ARG DEBIAN_VERSION=buster
+ARG LDVIEW_VERSION=4.4
+ARG MESA_VERSION=18.3.6
+ARG MESA_URL=https://archive.mesa3d.org/older-versions/18.x/mesa-${MESA_VERSION}.tar.gz
+ARG STLTOOLS_VERSION=2022.12.20
+ARG AD_MESH_VERSION=0.98.5-r0
+
+# fix apt for old buster
+RUN echo "deb http://archive.debian.org/debian ${DEBIAN_VERSION} main" > /etc/apt/sources.list && \
+    echo "deb http://archive.debian.org/debian ${DEBIAN_VERSION}-updates main" >> /etc/apt/sources.list && \
+    apt-get update --allow-insecure-repositories
+
 ENV PHP_MEMORY_LIMIT=2G
 WORKDIR /
 
-RUN apt update && apt-get upgrade -y && apt install -y \
+RUN apt-get upgrade -y --allow-unauthenticated && apt install -y --allow-unauthenticated \
     admesh \
     apt-transport-https \
     git \
@@ -29,19 +41,20 @@ RUN rm /usr/local/bin/install-php-extensions
 
 # install node 8 because newever version go kaboom
 RUN curl -sL https://deb.nodesource.com/setup_8.x | bash -
-RUN apt install -y nodejs npm &&\
+RUN apt install -y --allow-unauthenticated nodejs npm &&\
     apt-get clean
 
 #install ldview
-RUN wget https://github.com/tcobbs/ldview/releases/download/v4.4/ldview-osmesa-4.4-debian-buster.amd64.deb -O /ldview-osmesa-4.4-debian-buster.amd64.deb
-RUN apt install -y /ldview-osmesa-4.4-debian-buster.amd64.deb --allow-unauthenticated && \
-    rm /ldview-osmesa-4.4-debian-buster.amd64.deb && \
+RUN wget https://github.com/tcobbs/ldview/releases/download/v${LDVIEW_VERSION}/ldview-osmesa-4.4-debian-${DEBIAN_VERSION}.amd64.deb -O /ldview-osmesa-4.4-debian-${DEBIAN_VERSION}.amd64.deb
+RUN apt install -y --allow-unauthenticated /ldview-osmesa-${LDVIEW_VERSION}-debian-${DEBIAN_VERSION}.amd64.deb --allow-unauthenticated && \
+    rm /ldview-osmesa-${LDVIEW_VERSION}-debian-${DEBIAN_VERSION}.amd64.deb && \
     apt-get clean
+
 # rebuild mesa for debian:buster
 # https://github.com/tcobbs/ldview/issues/40
-RUN wget https://archive.mesa3d.org/mesa-18.3.6.tar.xz && \
-tar Jxf mesa-18.3.6.tar.xz
-RUN apt install -y\
+RUN wget ${MESA_URL} && \
+    tar zxf mesa-${MESA_VERSION}.tar.gz
+RUN apt install -y --allow-unauthenticated \
         build-essential meson python3-mako \
         libexpat1-dev libdrm-dev llvm-dev libelf-dev \
         bison flex \
@@ -50,16 +63,16 @@ RUN apt install -y\
         libxcb-dri2-0-dev libxcb-dri3-dev libxcb-present-dev libxshmfence-dev libxxf86vm-dev libxrandr-dev \
         gettext &&\
     apt-get clean
-RUN cd mesa-18.3.6 && \
+RUN cd mesa-${MESA_VERSION} && \
     mkdir builddir && \
     meson builddir && \
     ninja -C builddir && \
     ninja -C builddir/ install && \
     export LD_LIBRARY_PATH=/usr/local/lib/x86_64-linux-gnu
-RUN rm mesa-18.3.6.tar.xz && rm mesa-18.3.6 -r
+RUN rm mesa-${MESA_VERSION}.tar.gz && rm mesa-${MESA_VERSION} -r
 
 # install stl2pov
-RUN git clone --depth=1 https://github.com/rsmith-nl/stltools.git
+RUN git clone --depth=1 https://github.com/rsmith-nl/stltools.git -b ${STLTOOLS_VERSION}
 WORKDIR stltools
 RUN python3 setup.py install
 COPY stl2pov /usr/bin/stl2pov
@@ -72,7 +85,7 @@ RUN php installer
 RUN mv composer.phar /usr/local/bin/composer
 
 # Install & configure nginx
-RUN apt update && apt install -y \
+RUN apt update && apt install -y --allow-unauthenticated \
     nginx &&\
     apt-get clean
 # ADD nginx.conf /etc/nginx/nginx.conf
@@ -85,9 +98,11 @@ ADD fpm.conf /etc/php/7.1/fpm/pool.d/printabrick.conf
 # RUN git clone --depth=1 https://github.com/hubnedav/PrintABrick.git
 ADD . /PrintABrick
 WORKDIR /PrintABrick
+# RUN composer update
 RUN composer install
+#--ignore-platform-reqs
 
-# setup front ned
+# setup frontend
 RUN npm install
 RUN npm install bower -g
 
