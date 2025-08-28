@@ -94,15 +94,15 @@ ADD fpm.conf /etc/php/7.1/fpm/pool.d/printabrick.conf
 # RUN git clone --depth=1 https://github.com/hubnedav/PrintABrick.git
 ADD . /PrintABrick
 WORKDIR /PrintABrick
-# RUN composer update
-RUN composer install
-#--ignore-platform-reqs
+# Install PHP dependencies without dev packages for production
+RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
 
-# setup frontend
-RUN npm install
-RUN npm install bower -g
+# Setup frontend dependencies
+RUN npm install bower -g --only=production
+RUN npm install --only=production
 
-RUN bower install --allow-root
+# Build frontend assets (if applicable)
+RUN bower install --allow-root --production
 RUN node_modules/gulp/bin/gulp.js
 
 # Permissions
