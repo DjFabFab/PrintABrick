@@ -9,6 +9,7 @@ ARG STLTOOLS_VERSION=2022.12.20
 ARG AD_MESH_VERSION=0.98.5-r0
 
 ENV PHP_MEMORY_LIMIT=2G
+ENV PATH="/root/.local/bin:${PATH}"
 WORKDIR /
 
 
@@ -32,8 +33,9 @@ RUN apk add --update --no-cache \
 
 RUN git clone --depth=1 https://github.com/POV-Ray/povray.git -b ${POVRAY_VERSION}
 RUN cd povray/unix && ./prebuild.sh && \
-    cd .. && ./configure COMPILED_BY="undefined" && make && make install
+    cd .. && ./configure COMPILED_BY="undefined" && make -j "$(nproc)" && make install
 RUN rm -r /povray
+RUN ln -s /usr/local/bin/povray /usr/bin/povray
 
 # php extensions
 ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
@@ -61,20 +63,23 @@ RUN apk add --update --no-cache freeglut-dev gcc g++ cmake
 RUN git clone --depth=1 https://gitlab.onelab.info/gl2ps/gl2ps -b gl2ps_${GL2PS_VERSION}
 RUN mkdir -p gl2ps/build && cd gl2ps/build && \
     cmake -DGL2PS_EXTRA_VERSION=${EXTRA_VERSION:0:13} .. && \
-    make && make install
+    make -j "$(nproc)" && make install
 ADD https://github.com/tcobbs/ldview/releases/download/v4.4.1/ldview-4.4.1-r1.apk /ldview-4.4.1-r1.apk
 RUN apk add --update --no-cache --allow-untrusted ./ldview-4.4.1-r1.apk && rm ./ldview-4.4.1-r1.apk
 
 #ldview compile
 RUN apk add --update --no-cache minizip-dev mesa-osmesa
 RUN git clone --depth=1 https://github.com/tcobbs/ldview -b ${LDVIEW_VERSION}
-RUN cd ldview/OSMesa && make && make install
+RUN cd ldview/OSMesa && make -j "$(nproc)" && make install
 RUN rm -r /ldview
 
 # install stl2pov
 RUN git clone --depth=1 https://github.com/rsmith-nl/stltools.git -b ${STLTOOLS_VERSION}
 WORKDIR stltools
 RUN python3 setup.py install
+#RUN ln -s /root/.local/bin/stl2pov /usr/local/bin/stl2pov
+COPY stl2pov /usr/bin/stl2pov
+RUN chmod +x /usr/bin/stl2pov
 WORKDIR /
 
 # install composer
@@ -95,7 +100,9 @@ ADD fpm.conf /etc/php/7.1/fpm/pool.d/printabrick.conf
 ADD . /PrintABrick
 WORKDIR /PrintABrick
 # Install PHP dependencies without dev packages for production
-RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts
+RUN composer install --optimize-autoloader --no-interaction 
+# --no-scripts
+# --no-dev
 
 # Setup frontend dependencies
 RUN npm install bower -g --only=production

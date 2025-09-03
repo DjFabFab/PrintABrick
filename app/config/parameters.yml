@@ -1,0 +1,16 @@
+# This file is auto-generated during the composer install
+parameters:
+    database_host: '%env(MARIADB_HOST)%'
+    database_port: '%env(MARIADB_PORT)%'
+    database_name: '%env(MARIADB_DATABASE)%'
+    database_user: '%env(MARIADB_USER)%'
+    database_password: '%env(MARIADB_PASSWORD)%'
+    elastica_host: '%env(ELASTICA_HOST)%'
+    elastica_port: '%env(ELASTICA_PORT)%'
+    secret: ThisTokenIsNotSoSecretChangeIt
+    brickset_apikey: '%env(BRICKSET_APIKEY)%'
+    rebrickable_apikey: '%env(REBRICKABLE_APIKEY)%'
+    ldview_bin: /usr/bin/ldview
+    povray_bin: /usr/bin/povray
+    stl2pov_bin: /usr/bin/stl2pov
+    admesh_bin: /usr/bin/admesh

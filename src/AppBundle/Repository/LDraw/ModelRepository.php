@@ -57,7 +57,7 @@ class ModelRepository extends BaseRepository
         return $queryBuilder->getQuery()->getResult();
     }
 
-    public function count()
+    public function count(array $criteria)
     {
         $queryBuilder = $this->createQueryBuilder('model');
         $queryBuilder->select('count(model)');

@@ -17,6 +17,7 @@ RUN echo "deb http://archive.debian.org/debian ${DEBIAN_VERSION} main" > /etc/ap
     apt-get update --allow-insecure-repositories
 
 ENV PHP_MEMORY_LIMIT=2G
+ENV PATH="/root/.local/bin:${PATH}"
 WORKDIR /
 
 RUN apt-get upgrade -y --allow-unauthenticated && apt install -y --allow-unauthenticated \
@@ -75,6 +76,7 @@ RUN rm mesa-${MESA_VERSION}.tar.gz && rm mesa-${MESA_VERSION} -r
 RUN git clone --depth=1 https://github.com/rsmith-nl/stltools.git -b ${STLTOOLS_VERSION}
 WORKDIR stltools
 RUN python3 setup.py install
+# RUN ln -s /root/.local/bin/stl2pov /usr/local/bin/stl2pov
 COPY stl2pov /usr/bin/stl2pov
 RUN chmod +x /usr/bin/stl2pov
 WORKDIR /

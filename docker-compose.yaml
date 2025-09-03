@@ -1,0 +1,82 @@
+services:
+  nginx:
+    # image: printabrick:latest
+    build:
+      context: .
+      dockerfile: Dockerfile-alpine
+      tags:
+        - printabrick:latest
+    volumes:
+      # - ./nginx.conf:/etc/nginx/sites-available/default
+      - media-cache:/PrintABrick/web/media/cache
+      - php-cache:/PrintABrick/var/cache
+      - media:/PrintABrick/var/media
+      - ./var/logs:/PrintABrick/var/logs
+      # - .:/PrintABrick
+    environment:
+      - PHP_MEMORY_LIMIT=4G
+      - MARIADB_ROOT_PASSWORD=1234
+      - MARIADB_PASSWORD=1234
+      - MARIADB_USER=printabrick
+      - MARIADB_DATABASE=printabrick
+      - MARIADB_HOST=mariadb
+      - MARIADB_PORT=3306
+      - ELASTICA_HOST=elasticsearch
+      - ELASTICA_PORT=9200
+      - BRICKSET_APIKEY=3-bQsP-SQp3-rjmwY
+      - REBRICKABLE_APIKEY=58eb96c4860f39511ca9168aaeec90db
+    ports:
+      - 8080:80
+    command: /bin/sh -c "nginx -g 'daemon off;' && tail -f /var/log/nginx/*.log"
+
+  php-fpm:
+    # image: printabrick:latest
+    build:
+      context: .
+      dockerfile: Dockerfile-alpine
+      tags:
+        - printabrick:latest
+    ports:
+      - 9000:9000
+    volumes:
+      - media-cache:/PrintABrick/web/media/cache
+      - php-cache:/PrintABrick/var/cache
+      - media:/PrintABrick/var/media
+      # - ./fpm.conf:/etc/php/7.1/fpm/pool.d/printabrick.conf
+      - ./var/logs:/PrintABrick/var/logs
+      # - .:/PrintABrick
+    environment:
+      - PHP_MEMORY_LIMIT=4G
+      - MARIADB_ROOT_PASSWORD=1234
+      - MARIADB_PASSWORD=1234
+      - MARIADB_USER=printabrick
+      - MARIADB_DATABASE=printabrick
+      - MARIADB_HOST=mariadb
+      - MARIADB_PORT=3306
+      - ELASTICA_HOST=elastic
+      - ELASTICA_PORT=9200
+      - BRICKSET_APIKEY=3-bQsP-SQp3-rjmwY
+      - REBRICKABLE_APIKEY=58eb96c4860f39511ca9168aaeec90db
+
+  elastic:
+    image: docker.elastic.co/elasticsearch/elasticsearch:5.6.16
+    ports:
+      - 9200:9200
+      - 9300:9300
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+  mariadb:
+    image: mariadb:11-noble
+    ports:
+      - 3306:3306
+    environment:
+      - MARIADB_ROOT_PASSWORD=1234
+      - MARIADB_PASSWORD=1234
+      - MARIADB_USER=printabrick
+      - MARIADB_DATABASE=printabrick
+
+volumes:
+  media-cache:
+  php-cache:
+  media:
